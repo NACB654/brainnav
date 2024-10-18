@@ -51,8 +51,8 @@ const GameTarget = ({onClick}) => {
       justifyContent: 'center',
     }}>
       <div id="game-container" style={{
-        width: '30vw',
-        height: '25vh',
+        width: '20vw',
+        height: '20vh',
         borderRadius: '10px',
         border: "1px solid",
         marginTop: "25px",
