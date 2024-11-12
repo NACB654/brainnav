@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Buttons from "./Buttons";
 
-const GameTarget = ({onClick}) => {
+const GameTarget = ({onClick, onRestart, setFinalScore}) => {
   const [score, setScore] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [timeLeft, setTimeLeft] = useState(60);
@@ -24,13 +24,16 @@ const GameTarget = ({onClick}) => {
 
   const handleClick = () => {
     setScore(score + 1);
+    setFinalScore(score + 1)
     moveTarget();
   };
 
   const handleRestart = () => {
     setScore(0);
+    setFinalScore(0);
     setTimeLeft(60);
     moveTarget();
+    onRestart()
   };
 
   useEffect(() => {
