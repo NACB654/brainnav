@@ -27,19 +27,19 @@ def move_cursor(expression):
     lower_action = expression["lAct"]
     lower_power = expression["lPow"]
         
-    if eyes_action == "winkR":
+    if eyes_action == "winkR" and (upper_action == "neutral" or lower_action == "neutral"):
         pyautogui.move(30, 0)
-    elif eyes_action == "winkL":
+    elif eyes_action == "winkL" and (upper_action == "neutral" or lower_action == "neutral"):
         pyautogui.move(-30, 0)
-    elif upper_action == "surprise" and upper_power > 0.9:
-        pyautogui.move(0, -15)
-    elif lower_action == "smile" and lower_power > 0.9:
-        pyautogui.move(0, 15)
+    elif upper_action == "surprise" and upper_power > 0.8:
+        pyautogui.move(0, -20)
+    elif lower_action == "smile" and lower_power > 0.8:
+        pyautogui.move(0, 20)
     elif eyes_action == "blink" and (upper_action == "neutral" or lower_action == "neutral"):
         pyautogui.click()
         
 def write_data(expression):
-    with open("datos/sonrisa.csv", mode="a", newline="") as file_csv:
+    with open("datos/expresiones.csv", mode="a", newline="") as file_csv:
         campos = ["eyeAct", "uAct", "uPow", "lAct", "lPow", "time"]
         
         
@@ -56,26 +56,33 @@ def run_test():
     duration = timedelta(minutes=1)
     
     count = 0
+    last_blink = None
     
     while True:
         expression = get_expression(cortex_api)
         
         if expression:
-            if expression["eyeAct"] == "blink":
-                count += 1
+            # if expression["eyeAct"] == "blink":
+            #     current_time = time.time()
+            #     if last_blink is None or (current_time - last_blink > 1):
+            #         move_cursor(expression)
+            #         count += 1
+            #         last_blink = current_time
+            # else:
+            #     move_cursor(expression)
 
-            move_cursor(expression)
+            write_data(expression)
             print(expression)
         
         time.sleep(0.05)
         
         if datetime.now() - start_time >= duration:
-           break
+            break
        
         if keyboard.press("esc"):
             break
     
-    return jsonify({"Blinks": count}), 200
+    return jsonify({"msg": "ok"}), 200
     
 if __name__ == '__main__':
     cortex_api.open()

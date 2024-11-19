@@ -10,19 +10,15 @@ function App() {
   const [showGame, setShowGame] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
-  const [difficulty, setDifficulty] = useState("0");
-
-  const handleDifficulty = (e) => {
-    setDifficulty(e.target.value);
-  }
 
   const handleStart = async () => {
     setShowStart(false);
     setShowGame(true);
     setShowResult(false);
+    setFinalScore(0);
     
-    // const result = await serverAPI.runCortex()
-    // console.log(result)
+    const result = await serverAPI.runCortex()
+    console.log(result)
   }
 
   const handleRestart = () => {
@@ -51,13 +47,13 @@ function App() {
         minHeight: "60vh",
       }}>
         {showStart && (
-          <Start difficulty={handleDifficulty} onClick={handleStart}/>
+          <Start onClick={handleStart}/>
         )}
         {showGame && (
           <Test onClick={handleTest} onRestart={handleRestart} setFinalScore={setFinalScore} />
         )}
         {showResult && (
-          <Results onClickR={handleStart} onClickS={handleResults}/>
+          <Results onClickR={handleStart} onClickS={handleResults} score={finalScore}/>
         )}
       </main>
     </div>

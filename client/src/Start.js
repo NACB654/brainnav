@@ -1,6 +1,6 @@
 import Buttons from "./components/Buttons";
 
-export default function Start({difficulty, onClick}) {
+export default function Start({onClick}) {
   return (
     <>
       <img src={"/logo.png"}/>
@@ -14,15 +14,8 @@ export default function Start({difficulty, onClick}) {
         flexDirection: 'row',
         gap: "30px",
         marginTop: "20px",
+        justifyContent: "center"
       }}>
-        <select style={{
-          width: '180px',
-          borderRadius: '10px',
-        }} onChange={difficulty}> >
-          <option value={0}>Fácil</option>
-          <option value={1}>Normal</option>
-          <option value={2}>Difícil</option>
-        </select>
         <Buttons label={"Empezar"} onClick={onClick}/>
       </div>
     </>
