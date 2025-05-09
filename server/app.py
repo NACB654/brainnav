@@ -2,6 +2,7 @@ from cortex import Cortex
 from flask import Flask, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
+from scipy.spatial.transform import Rotation as R
 
 import pyautogui
 import keyboard
@@ -20,38 +21,58 @@ def get_expression(cortex_api):
     
     return response
 
+def leer_cuaternion(expression):
+    return [expression["Q1"], expression["Q2"], expression["Q3"], expression["Q0"]]
+
+def promedio_cuaterniones(lista_q):
+    r = R.from_quat(lista_q)
+    mean_rot = R.mean(r)
+    return mean_rot.as_quat()
+
+def orientacion_relativa(q_actual, q_base):
+    r_actual = R.from_quat(q_actual)
+    r_base = R.from_quat(q_base)
+    
+    r_rel = r_actual * r_base.inv()
+    
+    roll, pitch, yaw = r_rel.as_euler('xyz', degrees=True)
+    return {"roll": roll, "pitch": pitch, "yaw": yaw}
+
 def move_cursor(expression):
-    eyes_action = expression["eyeAct"]
-    upper_action = expression["uAct"]
-    upper_power = expression["uPow"]
-    lower_action = expression["lAct"]
-    lower_power = expression["lPow"]
+    eyes_action = expression["fac"]["eyeAct"]
+    upper_action = expression["fac"]["uAct"]
+    upper_power = expression["fac"]["uPow"]
+    lower_action = expression["fac"]["lAct"]
+    lower_power = expression["fac"]["lPow"]
+    roll = expression["mot"]["roll"]
         
-    if eyes_action == "winkR" and (upper_action == "neutral" or lower_action == "neutral"):
+    if roll <= -20:
         pyautogui.move(30, 0)
-    elif eyes_action == "winkL" and (upper_action == "neutral" or lower_action == "neutral"):
+    elif roll >= 20:
         pyautogui.move(-30, 0)
-    elif upper_action == "surprise" and upper_power > 0.8:
+    elif upper_action == "surprise" and upper_power > 0.75:
         pyautogui.move(0, -20)
-    elif lower_action == "smile" and lower_power > 0.8:
+    elif lower_action == "smile" and lower_power > 0.75:
         pyautogui.move(0, 20)
     elif eyes_action == "blink" and (upper_action == "neutral" or lower_action == "neutral"):
         pyautogui.click()
-        
-def write_data(expression):
-    with open("datos/expresiones.csv", mode="a", newline="") as file_csv:
-        campos = ["eyeAct", "uAct", "uPow", "lAct", "lPow", "time"]
-        
-        
-        write_csv = csv.DictWriter(file_csv, fieldnames=campos)
-        if file_csv.tell() == 0:
-            write_csv.writeheader()
-            
-        write_csv.writerow(expression)
-        
+         
 
 @app.route("/run")
 def run_test():
+    print("Calibrando, quédate quieto...")
+    baseline_quats = []
+    for _ in range(30):
+        expression = get_expression(cortex_api)
+        
+        if expression:
+            q = leer_cuaternion(expression["mot"])
+            baseline_quats.append(q)
+        
+        time.sleep(0.1)
+
+    q_base = promedio_cuaterniones(baseline_quats)
+
     start_time = datetime.now()
     duration = timedelta(minutes=1)
     
@@ -62,17 +83,19 @@ def run_test():
         expression = get_expression(cortex_api)
         
         if expression:
-            # if expression["eyeAct"] == "blink":
-            #     current_time = time.time()
-            #     if last_blink is None or (current_time - last_blink > 1):
-            #         move_cursor(expression)
-            #         count += 1
-            #         last_blink = current_time
-            # else:
-            #     move_cursor(expression)
+            q_actual = leer_cuaternion(expression["mot"])
+            expression["mot"] = orientacion_relativa(q_actual, q_base)
 
-            write_data(expression)
-            print(expression)
+            if expression["fac"]["eyeAct"] == "blink":
+                current_time = time.time()
+                if last_blink is None or (current_time - last_blink > 1):
+                    move_cursor(expression)
+                    count += 1
+                    last_blink = current_time
+            else:
+                move_cursor(expression)
+
+            # print(expression)
         
         time.sleep(0.05)
         
@@ -88,7 +111,7 @@ if __name__ == '__main__':
     cortex_api.open()
     cortex_api.ws_ready.wait()
     
-    cortex_api.sub_request(["fac"])
+    cortex_api.sub_request(["mot", "fac"])
     cortex_api.setup_profile("BrainNav", "load")
-    
+
     app.run(debug=True)

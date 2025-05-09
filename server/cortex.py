@@ -363,7 +363,7 @@ class Cortex(Dispatcher):
             fe_data['lAct'] = result_dic['fac'][3]      #lower action
             fe_data['lPow'] = result_dic['fac'][4]      #lower action power
             fe_data['time'] = result_dic['time']
-            self.message_queue = fe_data
+            self.message_queue["fac"] = fe_data
             self.emit('new_fe_data', data=fe_data)
         elif result_dic.get('eeg') != None:
             eeg_data = {}
@@ -373,8 +373,12 @@ class Cortex(Dispatcher):
             self.emit('new_eeg_data', data=eeg_data)
         elif result_dic.get('mot') != None:
             mot_data = {}
-            mot_data['mot'] = result_dic['mot']
+            mot_data['Q0'] = result_dic['mot'][2]
+            mot_data['Q1'] = result_dic['mot'][3]
+            mot_data['Q2'] = result_dic['mot'][4]
+            mot_data['Q3'] = result_dic['mot'][5]
             mot_data['time'] = result_dic['time']
+            self.message_queue["mot"] = mot_data
             self.emit('new_mot_data', data=mot_data)
         elif result_dic.get('dev') != None:
             dev_data = {}
