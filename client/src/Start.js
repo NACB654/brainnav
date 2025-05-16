@@ -1,6 +1,7 @@
 import Buttons from "./components/Buttons";
+import ModalCalibrate from "./components/Modal";
 
-export default function Start({onClick}) {
+export default function Start({onClick, showCalibration}) {
   return (
     <>
       <img src={"/logo.png"}/>
@@ -17,6 +18,7 @@ export default function Start({onClick}) {
         justifyContent: "center"
       }}>
         <Buttons label={"Empezar"} onClick={onClick}/>
+        <ModalCalibrate/>
       </div>
     </>
   )
