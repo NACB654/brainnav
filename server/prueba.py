@@ -4,7 +4,7 @@ from scipy.spatial.transform import Rotation as R
 
 import time
 import pyautogui
-import numpy as np
+import keyboard
 
 cortex_api = Cortex("HE4JKZSBkxPUDlzM0BRydxFtQb7aRycKG8BCVQT6", 
                     "kZzdxTGaZBosehGutm7OZloioepPS8QwZLzC1GJHRhexbIAwLG2azpFxznyQIjBcfXXCQlE1c26T7jzFY8mTtbyw0YeE3MUtEo7Z4QPj1atIA3IIPQkgOAUjRBhy7tUJ", 
@@ -30,29 +30,56 @@ def orientacion_relativa(q_actual, q_base):
     r_rel = r_actual * r_base.inv()
     
     roll, pitch, yaw = r_rel.as_euler('xyz', degrees=True)
-    # forward = np.array([0, 0, 1])
-    # up = np.array([0, 1, 0])
-    # right = np.array([1, 0, 0])
-
-    # forward_t = r_rel.apply(forward)
-    # up_t = r_rel.apply(up)
-    # right_t = r_rel.apply(right)
-
-    # pitch = np.degrees(np.arcsin(-forward_t[1]))
-    # roll = np.degrees(np.arctan2(up_t[0], up_t[2]))
-    # yaw = np.degrees(np.arctan2(forward_t[0], forward_t[2]))
 
     return {"roll": roll, "pitch": pitch, "yaw": yaw}
 
-def move_cursor(rotations):
-    if rotations["roll"] >= 20:
-        pyautogui.move(15, 0)
-    elif rotations["roll"] <= -20:
-        pyautogui.move(-15, 0)
-    elif rotations["pitch"] >= 20:
+def move_cursor(expression):
+    eyes_action = expression["fac"]["eyeAct"]
+    upper_action = expression["fac"]["uAct"]
+    upper_power = expression["fac"]["uPow"]
+    lower_action = expression["fac"]["lAct"]
+    lower_power = expression["fac"]["lPow"]
+    roll = expression["mot"]["roll"]
+    pitch = expression["mot"]["pitch"]
+        
+    if roll <= -20:
+        pyautogui.move(-30, 0)
+    elif roll >= 20:
+        pyautogui.move(30, 0)
+    elif upper_action == "surprise" and upper_power > 0.75:
+        pyautogui.move(0, -20)
+    elif lower_action == "smile" and lower_power > 0.75:
+        pyautogui.move(0, 20)
+    elif pitch >= 20:
         pyautogui.scroll(-100)
-    elif rotations["pitch"] <= -20:
+    elif pitch <= -20:
         pyautogui.scroll(100)
+    elif eyes_action == "blink" and (upper_action == "neutral" or lower_action == "neutral"):
+        pyautogui.click()
+
+def run_test(q_base):
+    count = 0
+    last_blink = None
+    
+    while True:
+        expression = get_expression(cortex_api)
+        
+        if expression:
+            q_actual = leer_cuaternion(expression["mot"])
+            expression["mot"] = orientacion_relativa(q_actual, q_base)
+
+            if expression["fac"]["eyeAct"] == "blink":
+                current_time = time.time()
+                if last_blink is None or (current_time - last_blink > 1):
+                    move_cursor(expression)
+                    count += 1
+                    last_blink = current_time
+            else:
+                move_cursor(expression)
+
+            print(expression)
+        
+        time.sleep(0.05)
 
 if __name__ == '__main__':
     cortex_api.open()
@@ -62,7 +89,7 @@ if __name__ == '__main__':
     cortex_api.setup_profile("BrainNav", "load")
 
     start_time = datetime.now()
-    duration = timedelta(seconds=30)
+    duration = timedelta(seconds=15)
 
     # for _ in range(30):
     #     expression = get_expression(cortex_api)
@@ -86,20 +113,19 @@ if __name__ == '__main__':
     q_base = promedio_cuaterniones(baseline_quats)
     print("Baseline cuaternion:", q_base)
 
-    while True:
-        expression = get_expression(cortex_api)
+    # while True:
+    #     expression = get_expression(cortex_api)
         
-        if expression:
-            q_actual = leer_cuaternion(expression["mot"])
+    #     if expression:
+    #         q_actual = leer_cuaternion(expression["mot"])
 
-            rotations = orientacion_relativa(q_actual, q_base)
-            print(f"Roll: {rotations['roll']:.2f}°, Pitch: {rotations['pitch']:.2f}°, Yaw: {rotations['yaw']:.2f}°")
-
-            move_cursor(rotations)
+    #         rotations = orientacion_relativa(q_actual, q_base)
+    #         print(f"Roll: {rotations['roll']:.2f}°, Pitch: {rotations['pitch']:.2f}°, Yaw: {rotations['yaw']:.2f}°")
         
-        time.sleep(0.05)
+    #     time.sleep(0.05)
        
-        if datetime.now() - start_time >= duration:
-            break
+    #     if datetime.now() - start_time >= duration:
+    #         break
+    run_test(q_base)
 
     cortex_api.close()

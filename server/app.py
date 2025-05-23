@@ -30,9 +30,7 @@ def promedio_cuaterniones(lista_q):
     mean_rot = R.mean(r)
     return mean_rot.as_quat()
 
-def orientacion_relativa(q_actual):
-    q_base = app.config.get["Q_BASE"]
-
+def orientacion_relativa(q_actual, q_base):
     r_actual = R.from_quat(q_actual)
     r_base = R.from_quat(q_base)
     
@@ -92,6 +90,7 @@ def calibrate_gyro():
 
 @app.route("/run")
 def run_test():
+    q_base = app.config.get("Q_BASE")
     start_time = datetime.now()
     duration = timedelta(minutes=1)
     
@@ -103,7 +102,7 @@ def run_test():
         
         if expression:
             q_actual = leer_cuaternion(expression["mot"])
-            expression["mot"] = orientacion_relativa(q_actual)
+            expression["mot"] = orientacion_relativa(q_actual, q_base)
 
             if expression["fac"]["eyeAct"] == "blink":
                 current_time = time.time()
